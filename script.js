@@ -163,12 +163,18 @@ let lastFields = [];
 let lastSearchTerm = '';
 let currentPage = 1;
 let loadMoreBtn = null;
+const CHUNK_SIZE = 10; // cards per rendering chunk
+const loadingSpinner = document.getElementById('loading-spinner');
 
 function clearLoadMoreBtn() {
     if (loadMoreBtn && loadMoreBtn.parentNode) {
         loadMoreBtn.parentNode.removeChild(loadMoreBtn);
     }
     loadMoreBtn = null;
+}
+
+function showSpinner(show) {
+    if (loadingSpinner) loadingSpinner.style.display = show ? '' : 'none';
 }
 
 function renderCards(data, fields, searchTerm = '') {
@@ -187,6 +193,7 @@ function renderCards(data, fields, searchTerm = '') {
     }
     if (!matches.length) {
         noMatches.style.display = '';
+        showSpinner(false);
         return;
     } else {
         noMatches.style.display = 'none';
@@ -199,32 +206,47 @@ function renderCards(data, fields, searchTerm = '') {
 }
 
 function renderCardsPage() {
-    const start = 0;
-    const end = currentPage * CARDS_PER_PAGE;
     cardsSection.innerHTML = '';
-    const toShow = lastMatches.slice(0, end);
-    toShow.forEach(row => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        lastFields.forEach(field => {
-            const value = row[field] || '';
-            const fieldDiv = document.createElement('div');
-            fieldDiv.innerHTML = `<strong>${field}:</strong> ${value}`;
-            card.appendChild(fieldDiv);
-        });
-        cardsSection.appendChild(card);
-    });
     clearLoadMoreBtn();
-    if (lastMatches.length > end) {
-        loadMoreBtn = document.createElement('button');
-        loadMoreBtn.id = 'load-more-btn';
-        loadMoreBtn.textContent = 'Load More';
-        loadMoreBtn.onclick = function() {
-            currentPage++;
-            renderCardsPage();
-        };
-        cardsSection.parentNode.insertBefore(loadMoreBtn, cardsSection.nextSibling);
+    showSpinner(true);
+    const end = currentPage * CARDS_PER_PAGE;
+    const toShow = lastMatches.slice(0, end);
+    let i = 0;
+    function renderChunk() {
+        const chunkEnd = Math.min(i + CHUNK_SIZE, toShow.length);
+        for (; i < chunkEnd; i++) {
+            const row = toShow[i];
+            const card = document.createElement('div');
+            card.className = 'card';
+            lastFields.forEach(field => {
+                const value = row[field] || '';
+                const fieldDiv = document.createElement('div');
+                fieldDiv.innerHTML = `<strong>${field}:</strong> ${value}`;
+                card.appendChild(fieldDiv);
+            });
+            cardsSection.appendChild(card);
+        }
+        if (i < toShow.length) {
+            if (window.requestIdleCallback) {
+                requestIdleCallback(renderChunk);
+            } else {
+                requestAnimationFrame(renderChunk);
+            }
+        } else {
+            showSpinner(false);
+            if (lastMatches.length > end) {
+                loadMoreBtn = document.createElement('button');
+                loadMoreBtn.id = 'load-more-btn';
+                loadMoreBtn.textContent = 'Load More';
+                loadMoreBtn.onclick = function() {
+                    currentPage++;
+                    renderCardsPage();
+                };
+                cardsSection.parentNode.insertBefore(loadMoreBtn, cardsSection.nextSibling);
+            }
+        }
     }
+    renderChunk();
 }
 
 // --- Debounced Search ---

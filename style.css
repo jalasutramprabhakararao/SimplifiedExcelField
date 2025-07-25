@@ -148,7 +148,28 @@ input[type="file"] {
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 2rem;
+  will-change: transform;
+  backface-visibility: hidden;
+  contain: layout style;
+  scroll-behavior: smooth;
 }
+
+/* Spinner styles */
+.spinner {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--primary);
+  border-radius: 50%;
+  border-top: 4px solid transparent;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 
 #load-more-btn {
   display: block;
