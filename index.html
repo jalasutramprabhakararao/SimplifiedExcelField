@@ -13,6 +13,17 @@
         <h1>Excel Card App</h1>
         <button id="dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
     </header>
+    <!-- Permissions Modal -->
+    <div id="permissions-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2>🔒 Permissions Required</h2>
+            <p>This app needs certain browser features to work properly. Please enable the following:</p>
+            <div id="permission-list"></div>
+            <button id="check-permissions-again" class="primary-btn">Check Again</button>
+            <button id="continue-anyway" class="secondary-btn">Continue Anyway</button>
+        </div>
+    </div>
+
     <main>
         <section id="upload-section">
             <label for="excel-file" class="file-label">Upload Excel (.xlsx) File</label>

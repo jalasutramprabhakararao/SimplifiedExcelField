@@ -338,17 +338,140 @@ searchInput.addEventListener('input', function(e) {
     renderCards(excelData, selectedFields, term);
 });
 
-// On load: try to restore from storage and dark mode
-window.addEventListener('DOMContentLoaded', async () => {
-    restoreDarkMode();
-    const stored = await loadFromStorage();
-    if (stored && stored.data && stored.fields) {
-        excelData = stored.data;
-        selectedFields = stored.fields;
-        columnSection.style.display = 'none';
-        searchSection.style.display = '';
-        renderCards(excelData, selectedFields);
+// --- Permission Checks ---
+const permissionsModal = document.getElementById('permissions-modal');
+const permissionList = document.getElementById('permission-list');
+const checkAgainBtn = document.getElementById('check-permissions-again');
+const continueAnywayBtn = document.getElementById('continue-anyway');
+
+function getPermissionStatus() {
+    const permissions = [];
+    
+    // Check File API
+    permissions.push({
+        id: 'file-api',
+        title: 'File Upload',
+        description: 'Required to upload Excel files',
+        granted: !!(window.File && window.FileReader && window.FileList && window.Blob),
+        action: 'This is built into your browser. Try updating your browser if not supported.'
+    });
+    
+    // Check localStorage
+    let localStorageGranted = true;
+    try {
+        const testKey = '__test_storage__';
+        localStorage.setItem(testKey, 'test');
+        localStorage.removeItem(testKey);
+    } catch (e) {
+        localStorageGranted = false;
     }
+    
+    permissions.push({
+        id: 'local-storage',
+        title: 'Local Storage',
+        description: 'Required to save your preferences and settings',
+        granted: localStorageGranted,
+        action: 'Enable cookies and site data in your browser settings'
+    });
+    
+    // Check IndexedDB
+    permissions.push({
+        id: 'indexeddb',
+        title: 'Database Storage',
+        description: 'Required to store large Excel files locally',
+        granted: !!window.indexedDB,
+        action: 'Enable database storage in your browser settings'
+    });
+    
+    return permissions;
+}
+
+function renderPermissionModal(permissions) {
+    permissionList.innerHTML = '';
+    
+    permissions.forEach(perm => {
+        const item = document.createElement('div');
+        item.className = `permission-item ${perm.granted ? 'granted' : ''}`;
+        
+        item.innerHTML = `
+            <div class="permission-info">
+                <div class="permission-title">${perm.title}</div>
+                <div class="permission-desc">${perm.description}</div>
+            </div>
+            <button class="permission-btn" ${perm.granted ? 'disabled' : ''} 
+                    onclick="handlePermissionAction('${perm.id}', '${perm.action}')">
+                ${perm.granted ? 'Enabled' : 'Enable'}
+            </button>
+        `;
+        
+        permissionList.appendChild(item);
+    });
+}
+
+function handlePermissionAction(permId, action) {
+    alert(`To enable ${permId}:\n\n${action}\n\nAfter making changes, click "Check Again" to verify.`);
+}
+
+function checkRequiredPermissions() {
+    const permissions = getPermissionStatus();
+    const hasIssues = permissions.some(p => !p.granted);
+    
+    if (hasIssues) {
+        renderPermissionModal(permissions);
+        permissionsModal.style.display = 'flex';
+        return false;
+    }
+    
+    return true;
+}
+
+function hidePermissionsModal() {
+    permissionsModal.style.display = 'none';
+}
+
+// Permission modal event listeners
+if (checkAgainBtn) {
+    checkAgainBtn.addEventListener('click', () => {
+        const permissions = getPermissionStatus();
+        const hasIssues = permissions.some(p => !p.granted);
+        
+        if (!hasIssues) {
+            hidePermissionsModal();
+            initializeApp();
+        } else {
+            renderPermissionModal(permissions);
+        }
+    });
+}
+
+if (continueAnywayBtn) {
+    continueAnywayBtn.addEventListener('click', () => {
+        hidePermissionsModal();
+        initializeApp();
+    });
+}
+
+function initializeApp() {
+    restoreDarkMode();
+    loadFromStorage().then(stored => {
+        if (stored && stored.data && stored.fields) {
+            excelData = stored.data;
+            selectedFields = stored.fields;
+            columnSection.style.display = 'none';
+            searchSection.style.display = '';
+            renderCards(excelData, selectedFields);
+        }
+    });
+}
+
+// On load: check permissions, then initialize app
+window.addEventListener('DOMContentLoaded', () => {
+    // Check required permissions first
+    if (checkRequiredPermissions()) {
+        // All permissions granted, initialize app immediately
+        initializeApp();
+    }
+    // If permissions are missing, modal will be shown and user can check again
 });
 
 // Optional: Register service worker for offline usability (if supported)
