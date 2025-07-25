@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Excel Card App</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- SheetJS CDN for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Excel Card App</h1>
+        <button id="dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+    </header>
+    <main>
+        <section id="upload-section">
+            <label for="excel-file" class="file-label">Upload Excel (.xlsx) File</label>
+            <input type="file" id="excel-file" accept=".xlsx" />
+            <div id="file-error" class="error-message"></div>
+        </section>
+        <section id="column-select-section" style="display:none;">
+            <h2>Select Fields to Display</h2>
+            <form id="column-form"></form>
+            <button id="save-columns" class="primary-btn">Save Selection</button>
+        </section>
+        <section id="search-section" style="display:none;">
+            <input type="text" id="search-input" placeholder="Search..." autocomplete="off" />
+        </section>
+        <section id="cards-section"></section>
+        <div id="no-matches" class="error-message" style="display:none;">No matches found.</div>
+    </main>
+    <footer>
+        <small>&copy; 2025 Simple Excel Card App</small>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>
