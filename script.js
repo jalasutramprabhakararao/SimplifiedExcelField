@@ -409,7 +409,56 @@ function renderPermissionModal(permissions) {
 }
 
 function handlePermissionAction(permId, action) {
-    alert(`To enable ${permId}:\n\n${action}\n\nAfter making changes, click "Check Again" to verify.`);
+    switch(permId) {
+        case 'local-storage':
+            openStorageSettings();
+            break;
+        case 'indexeddb':
+            openStorageSettings();
+            break;
+        case 'file-api':
+            alert(`File API support depends on your browser version.\n\n${action}\n\nAfter updating, click "Check Again" to verify.`);
+            break;
+        default:
+            alert(`To enable ${permId}:\n\n${action}\n\nAfter making changes, click "Check Again" to verify.`);
+    }
+}
+
+function openStorageSettings() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    let settingsUrl = '';
+    
+    if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
+        // Chrome
+        settingsUrl = 'chrome://settings/content/cookies';
+    } else if (userAgent.includes('firefox')) {
+        // Firefox
+        settingsUrl = 'about:preferences#privacy';
+    } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
+        // Safari
+        alert('To enable storage in Safari:\n\n1. Open Safari menu > Preferences\n2. Go to Privacy tab\n3. Uncheck "Prevent cross-site tracking"\n4. Under "Cookies and website data" select "Allow from websites I visit"\n\nAfter making changes, click "Check Again" to verify.');
+        return;
+    } else if (userAgent.includes('edg')) {
+        // Edge
+        settingsUrl = 'edge://settings/content/cookies';
+    } else {
+        // Generic instructions for unknown browsers
+        alert('To enable storage permissions:\n\n1. Open your browser settings\n2. Look for Privacy or Content settings\n3. Find Cookies or Site Data settings\n4. Allow cookies and site data for this website\n5. Ensure JavaScript is enabled\n\nAfter making changes, click "Check Again" to verify.');
+        return;
+    }
+    
+    try {
+        // Try to open the settings page
+        window.open(settingsUrl, '_blank');
+        
+        // Show additional instructions
+        setTimeout(() => {
+            alert('Browser settings opened in a new tab.\n\nLook for:\n• Cookies and site data settings\n• Allow cookies for this site\n• Enable JavaScript\n\nAfter making changes, return here and click "Check Again".');
+        }, 500);
+    } catch (error) {
+        // Fallback if opening settings fails
+        alert('Unable to open browser settings automatically.\n\nPlease manually:\n1. Open your browser settings\n2. Go to Privacy/Content settings\n3. Allow cookies and site data\n4. Enable JavaScript\n\nAfter making changes, click "Check Again" to verify.');
+    }
 }
 
 function checkRequiredPermissions() {
