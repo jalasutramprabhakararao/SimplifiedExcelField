@@ -156,9 +156,24 @@ function isRegistrationField(fieldName) {
     return fieldName.toLowerCase().includes('registratio');
 }
 
-// UI: Render cards
+// --- Virtualized Card Rendering ---
+const CARDS_PER_PAGE = 30;
+let lastMatches = [];
+let lastFields = [];
+let lastSearchTerm = '';
+let currentPage = 1;
+let loadMoreBtn = null;
+
+function clearLoadMoreBtn() {
+    if (loadMoreBtn && loadMoreBtn.parentNode) {
+        loadMoreBtn.parentNode.removeChild(loadMoreBtn);
+    }
+    loadMoreBtn = null;
+}
+
 function renderCards(data, fields, searchTerm = '') {
     cardsSection.innerHTML = '';
+    clearLoadMoreBtn();
     let matches = data;
     const term = (searchTerm || '').toLowerCase().trim();
     // Only allow search in registration fields
@@ -176,10 +191,22 @@ function renderCards(data, fields, searchTerm = '') {
     } else {
         noMatches.style.display = 'none';
     }
-    matches.forEach(row => {
+    lastMatches = matches;
+    lastFields = fields;
+    lastSearchTerm = searchTerm;
+    currentPage = 1;
+    renderCardsPage();
+}
+
+function renderCardsPage() {
+    const start = 0;
+    const end = currentPage * CARDS_PER_PAGE;
+    cardsSection.innerHTML = '';
+    const toShow = lastMatches.slice(0, end);
+    toShow.forEach(row => {
         const card = document.createElement('div');
         card.className = 'card';
-        fields.forEach(field => {
+        lastFields.forEach(field => {
             const value = row[field] || '';
             const fieldDiv = document.createElement('div');
             fieldDiv.innerHTML = `<strong>${field}:</strong> ${value}`;
@@ -187,7 +214,28 @@ function renderCards(data, fields, searchTerm = '') {
         });
         cardsSection.appendChild(card);
     });
+    clearLoadMoreBtn();
+    if (lastMatches.length > end) {
+        loadMoreBtn = document.createElement('button');
+        loadMoreBtn.id = 'load-more-btn';
+        loadMoreBtn.textContent = 'Load More';
+        loadMoreBtn.onclick = function() {
+            currentPage++;
+            renderCardsPage();
+        };
+        cardsSection.parentNode.insertBefore(loadMoreBtn, cardsSection.nextSibling);
+    }
 }
+
+// --- Debounced Search ---
+let searchDebounceTimer = null;
+searchInput.addEventListener('input', function(e) {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    const term = (e.target.value || '').toLowerCase().trim();
+    searchDebounceTimer = setTimeout(() => {
+        renderCards(excelData, selectedFields, term);
+    }, 200);
+});
 
 
 // Handle file upload

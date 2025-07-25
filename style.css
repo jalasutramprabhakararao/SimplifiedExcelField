@@ -150,6 +150,27 @@ input[type="file"] {
   margin-bottom: 2rem;
 }
 
+#load-more-btn {
+  display: block;
+  margin: 0 auto 2rem auto;
+  padding: 0.8rem 2.2rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 0.2s;
+}
+#load-more-btn:active {
+  background: #1b4da0;
+}
+body.dark-mode #load-more-btn {
+  background: #23262f;
+  color: #90caf9;
+}
+
 .card {
   background: var(--card-bg);
   border-radius: var(--border-radius);
