@@ -66,6 +66,7 @@ const searchSection = document.getElementById('search-section');
 const searchInput = document.getElementById('search-input');
 const cardsSection = document.getElementById('cards-section');
 const noMatches = document.getElementById('no-matches');
+const searchFieldSelect = document.getElementById('search-field');
 
 // Utility: Set expiry in localStorage
 function setExpiry() {
@@ -133,22 +134,35 @@ function parseExcel(file, callback) {
 
 // UI: Show column selection
 function showColumnSelection(columns) {
+    selectedFields = [];
     columnForm.innerHTML = '';
-    columns.forEach(col => {
-        const id = 'col-' + col.replace(/\W+/g, '-');
-        const label = document.createElement('label');
-        label.htmlFor = id;
-        label.innerText = col;
+    
+    columns.forEach((column, index) => {
+        const fieldId = `col-${index}`;
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.id = id;
-        checkbox.name = 'columns';
-        checkbox.value = col;
+        checkbox.id = fieldId;
+        checkbox.value = column;
         checkbox.checked = true;
-        label.prepend(checkbox);
-        columnForm.appendChild(label);
+        
+        const label = document.createElement('label');
+        label.htmlFor = fieldId;
+        label.textContent = column;
+        
+        const div = document.createElement('div');
+        div.className = 'checkbox-container';
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        
+        columnForm.appendChild(div);
+        selectedFields.push(column);
     });
-    columnSection.style.display = '';
+    
+    // Update search fields dropdown
+    updateSearchFields(columns);
+    
+    columnSection.style.display = 'block';
+    searchSection.style.display = 'block';
 }
 
 // Helper: Detect if a field contains 'registratio' (case-insensitive, partial match, not requiring 'n' at the end)
@@ -249,16 +263,98 @@ function renderCardsPage() {
     renderChunk();
 }
 
-// --- Debounced Search ---
+// --- Search Functionality ---
+let availableFields = [];
+
+// Update available fields when columns are selected
+function updateSearchFields(fields) {
+    availableFields = fields;
+    const searchField = document.getElementById('search-field');
+    
+    // Save current selection
+    const currentValue = searchField.value;
+    
+    // Clear existing options except the first one ("All Fields")
+    while (searchField.options.length > 1) {
+        searchField.remove(1);
+    }
+    
+    // Add new field options
+    fields.forEach(field => {
+        const option = document.createElement('option');
+        option.value = field;
+        option.textContent = field;
+        searchField.appendChild(option);
+    });
+    
+    // Restore selection if it still exists
+    if (fields.includes(currentValue)) {
+        searchField.value = currentValue;
+    }
+}
+
+// Enhanced search function with field selection
+function searchData(data, searchTerm, searchField = 'all') {
+    if (!searchTerm.trim()) return data;
+    
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    return data.filter(item => {
+        if (searchField === 'all') {
+            // Search in all selected fields
+            return selectedFields.some(field => {
+                const value = String(item[field] || '').toLowerCase();
+                return value.includes(searchTermLower);
+            });
+        } else {
+            // Search in specific field
+            const value = String(item[searchField] || '').toLowerCase();
+            return value.includes(searchTermLower);
+        }
+    });
+}
+
+// Update the search event listener
 let searchDebounceTimer = null;
 searchInput.addEventListener('input', function(e) {
     if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-    const term = (e.target.value || '').toLowerCase().trim();
+    
     searchDebounceTimer = setTimeout(() => {
-        renderCards(excelData, selectedFields, term);
-    }, 200);
+        const searchTerm = e.target.value.trim();
+        const selectedField = searchFieldSelect.value;
+        
+        if (searchTerm) {
+            const filteredData = searchData(excelData, searchTerm, selectedField);
+            lastMatches = filteredData;
+            lastFields = selectedFields;
+            renderCards(filteredData, selectedFields, searchTerm);
+        } else {
+            lastMatches = excelData;
+            lastFields = selectedFields;
+            renderCards(excelData, selectedFields);
+        }
+        
+        // Show/hide no matches message
+        noMatches.style.display = searchTerm && lastMatches.length === 0 ? 'block' : 'none';
+    }, 200); // Slightly reduced debounce time for better responsiveness
 });
 
+// Handle field selection change
+searchFieldSelect.addEventListener('change', function() {
+    const searchTerm = searchInput.value.trim();
+    if (searchTerm) {
+        const filteredData = searchData(excelData, searchTerm, this.value);
+        lastMatches = filteredData;
+        renderCards(filteredData, selectedFields, searchTerm);
+        noMatches.style.display = filteredData.length === 0 ? 'block' : 'none';
+    }
+});
+
+// --- Debounced Search ---
+// searchInput.addEventListener('input', function(e) {
+//     const term = e.target.value;
+//     renderCards(excelData, selectedFields, term);
+// });
 
 // Handle file upload
 fileInput.addEventListener('change', function(e) {
@@ -303,12 +399,6 @@ saveColumnsBtn.addEventListener('click', async function(e) {
     renderCards(excelData, selectedFields);
 });
 
-// Handle search
-searchInput.addEventListener('input', function(e) {
-    const term = e.target.value;
-    renderCards(excelData, selectedFields, term);
-});
-
 // --- Dark Mode Logic ---
 const darkModeToggle = document.getElementById('dark-mode-toggle');
 
@@ -331,12 +421,6 @@ if (darkModeToggle) {
         setDarkMode(enabled);
     });
 }
-
-// --- Enhanced Search Function ---
-searchInput.addEventListener('input', function(e) {
-    const term = (e.target.value || '').toLowerCase().trim();
-    renderCards(excelData, selectedFields, term);
-});
 
 // --- Permission Checks ---
 const permissionsModal = document.getElementById('permissions-modal');

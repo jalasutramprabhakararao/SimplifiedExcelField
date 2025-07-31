@@ -36,7 +36,15 @@
             <button id="save-columns" class="primary-btn">Save Selection</button>
         </section>
         <section id="search-section" style="display:none;">
-            <input type="text" id="search-input" placeholder="Search..." autocomplete="off" />
+            <div class="search-container">
+                <div class="search-input-container">
+                    <input type="text" id="search-input" placeholder="Search..." autocomplete="off" />
+                    <select id="search-field" class="search-field-select">
+                        <option value="all">All Fields</option>
+                        <!-- Will be populated by JavaScript -->
+                    </select>
+                </div>
+            </div>
         </section>
         <div id="loading-spinner" style="display:none;text-align:center;margin:2rem 0;">
             <div class="spinner"></div>
