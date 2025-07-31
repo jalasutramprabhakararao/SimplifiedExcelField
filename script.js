@@ -158,9 +158,6 @@ function showColumnSelection(columns) {
         selectedFields.push(column);
     });
     
-    // Update search fields dropdown
-    updateSearchFields(columns);
-    
     columnSection.style.display = 'block';
     searchSection.style.display = 'block';
 }
@@ -279,7 +276,7 @@ function updateSearchFields(fields) {
         searchField.remove(1);
     }
     
-    // Add new field options
+    // Add only the selected fields as options
     fields.forEach(field => {
         const option = document.createElement('option');
         option.value = field;
@@ -287,9 +284,11 @@ function updateSearchFields(fields) {
         searchField.appendChild(option);
     });
     
-    // Restore selection if it still exists
+    // Restore selection if it still exists, otherwise default to "All Fields"
     if (fields.includes(currentValue)) {
         searchField.value = currentValue;
+    } else {
+        searchField.value = 'all';
     }
 }
 
@@ -380,22 +379,28 @@ fileInput.addEventListener('change', function(e) {
 });
 
 // Handle column selection save
-saveColumnsBtn.addEventListener('click', async function(e) {
-    e.preventDefault();
-    const checked = Array.from(columnForm.querySelectorAll('input[type="checkbox"]:checked'));
-    if (!checked.length) {
-        alert('Please select at least one field.');
+saveColumnsBtn.addEventListener('click', async function() {
+    selectedFields = [];
+    const checkboxes = columnForm.querySelectorAll('input[type="checkbox"]:checked');
+    checkboxes.forEach(checkbox => {
+        selectedFields.push(checkbox.value);
+    });
+    
+    if (selectedFields.length === 0) {
+        alert('Please select at least one field to display.');
         return;
     }
-    selectedFields = checked.map(cb => cb.value);
-    try {
-        await saveToStorage(excelData, selectedFields);
-    } catch (err) {
-        alert('Failed to save data: ' + (err && err.message ? err.message : err));
-        return;
+    
+    // Update search fields with the selected columns
+    updateSearchFields(selectedFields);
+    
+    // Save the selection to localStorage
+    if (excelData.length > 0) {
+        saveToStorage(excelData, selectedFields);
     }
+    
+    // Hide the column selection and show the cards
     columnSection.style.display = 'none';
-    searchSection.style.display = '';
     renderCards(excelData, selectedFields);
 });
 
