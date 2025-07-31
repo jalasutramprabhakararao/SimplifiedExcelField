@@ -1,4 +1,4 @@
-// Simple service worker for offline usability
+// Service worker for offline functionality
 const CACHE_NAME = 'excel-card-app-v2'; // Changed version number to force update
 const FILES_TO_CACHE = [
   '/',

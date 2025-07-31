@@ -55,6 +55,59 @@
     <footer>
         <small>&copy; 2025 RajeshJalasutram</small>
     </footer>
+    <div id="update-notification" class="update-notification" style="display: none;">
+        <div class="update-content">
+            <p>A new version is available! Please refresh to update.</p>
+            <button id="refresh-button" class="primary-btn">Refresh Now</button>
+        </div>
+    </div>
+    <script>
+        // Register service worker with update checking
+        if ('serviceWorker' in navigator) {
+            const updateNotification = document.getElementById('update-notification');
+            const refreshButton = document.getElementById('refresh-button');
+
+            // Function to show update notification
+            function showUpdateUI() {
+                updateNotification.style.display = 'block';
+            }
+
+            /* Commenting out service worker registration to prevent errors when running from file://
+            // Handle refresh button click
+            refreshButton.addEventListener('click', () => {
+                if (window.swUpdate) {
+                    window.swUpdate.postMessage({ type: 'SKIP_WAITING' });
+                }
+                window.location.reload();
+            });
+
+            // Register service worker
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('sw.js');
+                    
+                    // Check for updates every hour
+                    setInterval(() => {
+                        registration.update();
+                    }, 60 * 60 * 1000);
+
+                    // Listen for controller change (new service worker activated)
+                    let refreshing = false;
+                    navigator.serviceWorker.addEventListener('controllerchange', () => {
+                        if (refreshing) return;
+                        refreshing = true;
+                        window.location.reload();
+                    });
+
+                    // Check for updates immediately
+                    registration.update();
+                } catch (error) {
+                    console.error('Service worker registration failed:', error);
+                }
+            });
+            */
+        }
+    </script>
     <script src="script.js"></script>
 </body>
 </html>

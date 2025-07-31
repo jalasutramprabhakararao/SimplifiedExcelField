@@ -137,13 +137,17 @@ function showColumnSelection(columns) {
     selectedFields = [];
     columnForm.innerHTML = '';
     
+    // Get saved fields from localStorage if available
+    const savedFields = JSON.parse(localStorage.getItem(CONFIG_KEY) || '[]');
+    
     columns.forEach((column, index) => {
         const fieldId = `col-${index}`;
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = fieldId;
         checkbox.value = column;
-        checkbox.checked = true;
+        // Check if this field was previously selected (or check all if no saved fields)
+        checkbox.checked = savedFields.length === 0 || savedFields.includes(column);
         
         const label = document.createElement('label');
         label.htmlFor = fieldId;
@@ -155,11 +159,23 @@ function showColumnSelection(columns) {
         div.appendChild(label);
         
         columnForm.appendChild(div);
-        selectedFields.push(column);
+        
+        // Add to selectedFields if checked
+        if (checkbox.checked) {
+            selectedFields.push(column);
+        }
     });
+    
+    // Update the search fields dropdown with the selected columns
+    updateSearchFields(selectedFields.length > 0 ? selectedFields : columns);
     
     columnSection.style.display = 'block';
     searchSection.style.display = 'block';
+    
+    // If we have data and fields, render the cards
+    if (excelData.length > 0) {
+        renderCards(excelData, selectedFields);
+    }
 }
 
 // Helper: Detect if a field contains 'registratio' (case-insensitive, partial match, not requiring 'n' at the end)
@@ -193,22 +209,32 @@ function renderCards(data, fields, searchTerm = '') {
     clearLoadMoreBtn();
     let matches = data;
     const term = (searchTerm || '').toLowerCase().trim();
-    // Only allow search in registration fields
-    const regFields = fields.filter(isRegistrationField);
-    if (term && regFields.length > 0) {
-        matches = data.filter(row =>
-            regFields.some(field =>
-                String(row[field] || '').toLowerCase().includes(term)
-            )
-        );
+    const selectedField = searchFieldSelect.value;
+    
+    if (term) {
+        if (selectedField === 'all') {
+            // Search in all selected fields
+            matches = data.filter(row =>
+                fields.some(field => 
+                    String(row[field] || '').toLowerCase().includes(term)
+                )
+            );
+        } else if (fields.includes(selectedField)) {
+            // Search in the specific selected field
+            matches = data.filter(row => 
+                String(row[selectedField] || '').toLowerCase().includes(term)
+            );
+        }
     }
+    
     if (!matches.length) {
-        noMatches.style.display = '';
+        noMatches.style.display = term ? 'block' : 'none';
         showSpinner(false);
         return;
     } else {
         noMatches.style.display = 'none';
     }
+    
     lastMatches = matches;
     lastFields = fields;
     lastSearchTerm = searchTerm;
@@ -396,12 +422,18 @@ saveColumnsBtn.addEventListener('click', async function() {
     
     // Save the selection to localStorage
     if (excelData.length > 0) {
-        saveToStorage(excelData, selectedFields);
+        await saveToStorage(excelData, selectedFields);
+        
+        // Re-render cards with the new selection
+        renderCards(excelData, selectedFields);
+        
+        // Clear any existing search
+        searchInput.value = '';
+        noMatches.style.display = 'none';
     }
     
-    // Hide the column selection and show the cards
+    // Hide the column selection UI
     columnSection.style.display = 'none';
-    renderCards(excelData, selectedFields);
 });
 
 // --- Dark Mode Logic ---
@@ -597,6 +629,8 @@ function initializeApp() {
             selectedFields = stored.fields;
             columnSection.style.display = 'none';
             searchSection.style.display = '';
+            // Update the search dropdown with the saved fields
+            updateSearchFields(selectedFields);
             renderCards(excelData, selectedFields);
         }
     });
@@ -612,9 +646,11 @@ window.addEventListener('DOMContentLoaded', () => {
     // If permissions are missing, modal will be shown and user can check again
 });
 
+/* Commenting out service worker registration
 // Optional: Register service worker for offline usability (if supported)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(() => {});
     });
 }
+*/
